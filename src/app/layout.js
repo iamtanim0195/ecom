@@ -1,6 +1,11 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import Providers from "./providers";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import { CartProvider } from "@/components/cart/CartProvider";
+import Navbar from "@/components/layout/Navbar";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,7 +27,14 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>
+          <ToastProvider>
+            <CartProvider>
+              <Navbar />
+              {children}
+            </CartProvider>
+          </ToastProvider>
+        </Providers>
       </body>
     </html>
   );
