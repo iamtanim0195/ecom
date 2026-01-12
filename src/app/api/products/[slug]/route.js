@@ -4,9 +4,10 @@ import Product from "@/models/Product";
 
 export async function GET(req, { params }) {
     try {
-        await connectDB();
+        // Unwrap params to access the dynamic `slug`
+        const { slug } = await params; // Await params before destructuring
 
-        const { slug } = params;
+        await connectDB(); // Connect to MongoDB
 
         const product = await Product.findOne({ slug });
 
@@ -19,6 +20,7 @@ export async function GET(req, { params }) {
 
         return NextResponse.json({ product });
     } catch (err) {
+        console.error("Error fetching product:", err);
         return NextResponse.json(
             { message: "Server error" },
             { status: 500 }

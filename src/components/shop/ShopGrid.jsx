@@ -1,78 +1,75 @@
-import Link from "next/link";
-import connectDB from "@/lib/db";
-import Product from "@/models/Product";
+"use client";
 
-/**
- * Server Component
- * Fetches products and renders shop grid
- */
-async function getProducts() {
-    await connectDB();
+import { useEffect, useState } from "react";
+import ProductCard from "./ProductCard";
 
-    const products = await Product.find({})
-        .sort({ createdAt: -1 })
-        .lean();
+export default function ShopGrid() {
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1); // Track current page
+    const [totalPages, setTotalPages] = useState(1); // Track total pages
 
-    return products;
-}
+    const fetchProducts = async (page = 1) => {
+        setLoading(true);
+        const res = await fetch(`/api/products?page=${page}&limit=20`);
+        const data = await res.json();
 
-export default async function ShopGrid() {
-    const products = await getProducts();
+        console.log("API Response:", data); // Log the API response to check the structure
 
-    if (!products || products.length === 0) {
-        return (
-            <div className="text-center opacity-70">
-                No products available
-            </div>
-        );
+        if (Array.isArray(data.items)) {
+            setProducts(data.items);
+            setTotalPages(data.pagination.totalPages); // Set total pages from API response
+        } else {
+            console.error("Products data is not in expected format:", data);
+        }
+        setLoading(false);
+    };
+
+    // Fetch products whenever the currentPage changes
+    useEffect(() => {
+        fetchProducts(currentPage);
+    }, [currentPage]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage > 0 && newPage <= totalPages) {
+            setCurrentPage(newPage); // Update the current page
+        }
+    };
+
+    if (loading) return <div>Loading...</div>;
+
+    if (products.length === 0) {
+        return <div>No products found.</div>;
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {products.map((product) => (
-                <Link
-                    key={product._id}
-                    href={`/shop/${product.slug}`}
-                    className="card bg-base-100 shadow hover:shadow-lg transition"
+        <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                ))}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center mt-6">
+                <button
+                    className="btn btn-primary btn-sm mr-2"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
                 >
-                    {/* IMAGE */}
-                    <figure>
-                        <img
-                            src={product.images?.[0] || "/placeholder.png"}
-                            alt={product.title}
-                            className="h-52 w-full object-cover"
-                        />
-                    </figure>
-
-                    {/* CONTENT */}
-                    <div className="card-body">
-                        <h2 className="card-title">{product.title}</h2>
-
-                        {/* RATING */}
-                        <div className="flex items-center gap-1 text-sm">
-                            ⭐ {product.avgRating?.toFixed(1) || "0.0"}
-                            <span className="opacity-60">
-                                ({product.reviewCount || 0})
-                            </span>
-                        </div>
-
-                        {/* PRICE */}
-                        <p className="text-lg font-semibold">
-                            {product.currency.toUpperCase()} {product.price}
-                        </p>
-
-                        {/* STOCK */}
-                        <p
-                            className={`text-sm ${product.stock > 0
-                                    ? "text-success"
-                                    : "text-error"
-                                }`}
-                        >
-                            {product.stock > 0 ? "In stock" : "Out of stock"}
-                        </p>
-                    </div>
-                </Link>
-            ))}
+                    Previous
+                </button>
+                <span className="text-sm mx-2">
+                    Page {currentPage} of {totalPages}
+                </span>
+                <button
+                    className="btn btn-primary btn-sm ml-2"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                >
+                    Next
+                </button>
+            </div>
         </div>
     );
 }

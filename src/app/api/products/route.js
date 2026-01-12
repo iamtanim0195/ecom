@@ -8,19 +8,24 @@ import { ROLES } from "@/lib/roles";
 import slugify from "@/lib/slugify";
 import { validateCreateProduct } from "@/lib/validators/product";
 
+/**
+ * Fetch products for shop listing with pagination, search, and filter.
+ */
 export async function GET(req) {
     try {
         await connectDB();
 
+        // Await searchParams since it is a Promise
         const { searchParams } = new URL(req.url);
         const limit = Math.min(Number(searchParams.get("limit") || 20), 50);
         const page = Math.max(Number(searchParams.get("page") || 1), 1);
         const skip = (page - 1) * limit;
 
-        // Public listing will be built later for shop page.
+        // Public listing will be built later for the shop page.
         // For now, allow listing but only active products.
         const filter = { isActive: true };
 
+        // Fetch products and total count in parallel
         const [items, total] = await Promise.all([
             Product.find(filter)
                 .sort({ createdAt: -1 })
@@ -43,17 +48,22 @@ export async function GET(req) {
             { status: 200 }
         );
     } catch (err) {
+        console.error("Error in GET products:", err);
         return NextResponse.json({ message: "Server error" }, { status: 500 });
     }
 }
 
+/**
+ * Create a new product (requires authorization and validation).
+ */
 export async function POST(req) {
     try {
+        // Ensure the user is authenticated and authorized
         const user = await requireAuth(ROLES.MANAGER);
         await connectDB();
 
         const payload = await req.json();
-        const result = validateCreateProduct(payload);
+        const result = validateCreateProduct(payload); // Validate product data
 
         if (!result.ok) {
             return NextResponse.json(
@@ -78,19 +88,20 @@ export async function POST(req) {
             slug = `${baseSlug}-${counter}`;
         }
 
-        const created = await Product.create({
+        const createdProduct = await Product.create({
             ...result.value,
             slug,
             createdBy: new mongoose.Types.ObjectId(user.id),
         });
 
         return NextResponse.json(
-            { message: "Product created", product: created },
+            { message: "Product created", product: createdProduct },
             { status: 201 }
         );
     } catch (err) {
         console.error("❌ PRODUCT API ERROR:", err);
 
+        // Return specific messages for different error types
         if (err.message === "UNAUTHORIZED") {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
@@ -107,5 +118,4 @@ export async function POST(req) {
             { status: 500 }
         );
     }
-
 }
