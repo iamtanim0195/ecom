@@ -32,22 +32,25 @@ export default async function ProductDetailPage({ params }) {
                     <Image
                         src={product.images?.[0] || "/placeholder.png"}
                         alt={product.title}
-                        fill
+                        width={400}
+                        height={400}
                         className=" object-contain"
                     />
                 </figure>
 
                 {product.images?.length > 1 && (
-                    <div className="flex gap-2">
+                    <figure className="flex gap-2 w-20 h-20 object-cover border rounded">
                         {product.images.map((img, i) => (
                             <Image
                                 key={i}
                                 src={img}
                                 alt="Product Image"
-                                className="w-20 h-20 object-cover border rounded"
+                                width={80}
+                                height={80}
+                                className="object-cover rounded"
                             />
                         ))}
-                    </div>
+                    </figure>
                 )}
             </div>
 
